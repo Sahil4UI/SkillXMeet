@@ -6,6 +6,9 @@ import { MeetingProvider } from '@/context/meeting-context';
 import { ControlBar } from '@/components/meeting/control-bar';
 import { VideoGrid } from '@/components/meeting/video-grid';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect, useState } from 'react';
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
+import type { Meeting } from '@/components/dashboard/upcoming-meetings';
 
 function MeetingPageSkeleton() {
   return (
@@ -38,12 +41,32 @@ export function MeetingPageClient({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const db = getFirestore();
+  const [meeting, setMeeting] = useState<Meeting | null>(null);
+
+  useEffect(() => {
+    if (!db || meetingId.length <= 7) return; // Don't fetch for instant meetings
+
+    const fetchMeeting = async () => {
+      const meetingRef = doc(db, 'meetings', meetingId);
+      const meetingSnap = await getDoc(meetingRef);
+      if (meetingSnap.exists()) {
+        setMeeting(meetingSnap.data() as Meeting);
+      } else {
+        // Handle meeting not found, maybe redirect or show a message
+        console.error("Meeting not found!");
+        router.push('/dashboard');
+      }
+    };
+    fetchMeeting();
+  }, [db, meetingId, router]);
+
 
   if (loading || !user) {
-    // We can show a skeleton here, but AuthProvider will redirect to login if not authenticated.
-    // So this is mainly for the initial loading state.
     return <MeetingPageSkeleton />;
   }
+
+  const meetingTitle = meeting?.title || `Instant Meeting (${meetingId})`;
 
   return (
     <MeetingProvider 
@@ -56,7 +79,7 @@ export function MeetingPageClient({
         <div className="flex-1 relative overflow-hidden">
           <VideoGrid />
           <div className="absolute top-4 left-4 bg-black/50 text-white p-2 px-4 rounded-lg z-10">
-              <h1 className="text-lg font-bold font-headline">Advanced React Hooks ({meetingId})</h1>
+              <h1 className="text-lg font-bold font-headline">{meetingTitle}</h1>
           </div>
         </div>
         <ControlBar />

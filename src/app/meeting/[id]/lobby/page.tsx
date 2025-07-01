@@ -6,13 +6,13 @@ import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Mic, MicOff, Video, VideoOff, AlertTriangle } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, AlertTriangle, Frown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { doc, getDoc, getFirestore } from 'firebase/firestore';
 
 export default function LobbyPage({ params }: { params: { id: string } }) {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const db = getFirestore();
@@ -22,33 +22,37 @@ export default function LobbyPage({ params }: { params: { id: string } }) {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isMicOn, setMicOn] = useState(true);
   const [isVideoOn, setVideoOn] = useState(true);
-  const [meetingCreatorId, setMeetingCreatorId] = useState<string | null>(null);
   const [isCreator, setIsCreator] = useState(false);
+  const [meetingExists, setMeetingExists] = useState<boolean | null>(null);
   
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       router.push('/login');
     } else if (user && db) {
       const fetchMeeting = async () => {
+        // For instant meetings, we assume they exist and the user is the creator.
+        if (params.id.length <= 7) {
+          setMeetingExists(true);
+          setIsCreator(true);
+          return;
+        }
+
         const meetingRef = doc(db, 'meetings', params.id);
         const meetingSnap = await getDoc(meetingRef);
+        
         if (meetingSnap.exists()) {
+          setMeetingExists(true);
           const meetingData = meetingSnap.data();
-          setMeetingCreatorId(meetingData.creatorId);
           if (user.uid === meetingData.creatorId) {
             setIsCreator(true);
           }
+        } else {
+          setMeetingExists(false);
         }
       }
-      // Only fetch meeting data if it's not an "instant" meeting
-      if (params.id.length > 7) {
-        fetchMeeting();
-      } else {
-        // For instant meetings, the first person is the creator
-        setIsCreator(true);
-      }
+      fetchMeeting();
     }
-  }, [user, loading, router, params.id, db]);
+  }, [user, authLoading, router, params.id, db]);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -102,7 +106,9 @@ export default function LobbyPage({ params }: { params: { id: string } }) {
     router.push(`/meeting/${params.id}?mic=${isMicOn}&video=${isVideoOn}`);
   }
 
-  if (loading || !user) {
+  const isLoading = authLoading || meetingExists === null;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background p-4">
         <Card className="w-full max-w-2xl">
@@ -115,6 +121,27 @@ export default function LobbyPage({ params }: { params: { id: string } }) {
             <Skeleton className="h-5 w-48" />
             <Skeleton className="h-12 w-36" />
           </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (meetingExists === false) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background p-4">
+        <Card className="w-full max-w-lg text-center">
+           <CardHeader>
+             <CardTitle className="text-2xl">Meeting Not Found</CardTitle>
+             <CardDescription>
+                This meeting link is invalid or the meeting has been deleted.
+             </CardDescription>
+           </CardHeader>
+           <CardContent>
+              <Frown className="w-24 h-24 mx-auto text-muted-foreground mb-4" />
+              <Button onClick={() => router.push('/dashboard')}>
+                Go to Dashboard
+              </Button>
+           </CardContent>
         </Card>
       </div>
     );

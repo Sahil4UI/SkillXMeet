@@ -5,24 +5,48 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { Header } from '@/components/header';
 import { ScheduleDialog } from '@/components/dashboard/schedule-dialog';
-import { UpcomingMeetings } from '@/components/dashboard/upcoming-meetings';
+import { UpcomingMeetings, type Meeting } from '@/components/dashboard/upcoming-meetings';
 import { Button } from '@/components/ui/button';
 import { CalendarClock, CalendarPlus, Lightbulb, Sparkles, Users, Video } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AiToolSuggesterDialog } from '@/components/meeting/ai-tool-suggester-dialog';
+import { collection, getFirestore, onSnapshot, orderBy, query } from 'firebase/firestore';
 
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const db = getFirestore();
   const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [meetingsLoading, setMeetingsLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
+  
+  useEffect(() => {
+    if (!db || !user) return;
+    setMeetingsLoading(true);
+    const q = query(collection(db, "meetings"), orderBy("date", "asc"), orderBy("time", "asc"));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const meetingsData: Meeting[] = [];
+        querySnapshot.forEach((doc) => {
+            meetingsData.push({ id: doc.id, ...doc.data() } as Meeting);
+        });
+        setMeetings(meetingsData);
+        setMeetingsLoading(false);
+    }, (error) => {
+        console.error("Error fetching meetings:", error);
+        setMeetingsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [db, user]);
 
   if (loading || !user) {
     return (
@@ -85,7 +109,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <UpcomingMeetings />
+            <UpcomingMeetings meetings={meetings} loading={meetingsLoading} />
           </div>
 
           <div className="lg:col-span-1 space-y-8">
@@ -115,8 +139,7 @@ export default function DashboardPage() {
                       <p className="text-sm text-muted-foreground">All scheduled</p>
                     </div>
                   </div>
-                  {/* This would ideally come from the fetched meetings length */}
-                  <p className="font-bold text-2xl">...</p>
+                  {meetingsLoading ? <Skeleton className="h-8 w-8" /> : <p className="font-bold text-2xl">{meetings.length}</p>}
                 </div>
               </CardContent>
             </Card>

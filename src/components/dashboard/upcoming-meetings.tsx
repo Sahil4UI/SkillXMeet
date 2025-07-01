@@ -11,8 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Edit, MoreVertical, Trash, Share2 } from 'lucide-react';
 import { FormattedDate } from './formatted-date';
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, getFirestore, orderBy } from 'firebase/firestore';
+import { useState } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { Skeleton } from '../ui/skeleton';
 import {
@@ -36,7 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ScheduleDialog } from './schedule-dialog';
 import { ShareMeetingDialog } from './share-meeting-dialog';
 
-interface Meeting {
+export interface Meeting {
     id: string;
     title: string;
     date: string;
@@ -45,37 +44,19 @@ interface Meeting {
     creatorId: string;
 }
 
-export function UpcomingMeetings() {
-  const { user, loading: authLoading } = useAuth();
-  const db = getFirestore();
+interface UpcomingMeetingsProps {
+  meetings: Meeting[];
+  loading: boolean;
+}
+
+export function UpcomingMeetings({ meetings, loading }: UpcomingMeetingsProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
   
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
   const [isShareDialogOpen, setShareDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
-
-  useEffect(() => {
-    if (!db) return;
-    setLoading(true);
-    const q = query(collection(db, "meetings"), orderBy("date", "asc"), orderBy("time", "asc"));
-
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const meetingsData: Meeting[] = [];
-        querySnapshot.forEach((doc) => {
-            meetingsData.push({ id: doc.id, ...doc.data() } as Meeting);
-        });
-        setMeetings(meetingsData);
-        setLoading(false);
-    }, (error) => {
-        console.error("Error fetching meetings:", error);
-        setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [db]);
 
   const handleDelete = async () => {
     if (!selectedMeeting) return;
@@ -104,7 +85,7 @@ export function UpcomingMeetings() {
     setShareDialogOpen(true);
   }
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
         <div>
             <h2 className="text-2xl font-bold mb-4 font-headline">Upcoming Meetings</h2>
