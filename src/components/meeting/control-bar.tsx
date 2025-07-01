@@ -7,16 +7,21 @@ import { ChatPanel } from './chat-panel';
 import { ParticipantPanel } from './participant-panel';
 import { AiToolSuggesterDialog } from './ai-tool-suggester-dialog';
 
-export function ControlBar() {
-  const [isMicOn, setMicOn] = useState(true);
-  const [isVideoOn, setVideoOn] = useState(true);
+interface ControlBarProps {
+  initialMicOn?: boolean;
+  initialVideoOn?: boolean;
+}
+
+export function ControlBar({ initialMicOn = true, initialVideoOn = true }: ControlBarProps) {
+  const [isMicOn, setMicOn] = useState(initialMicOn);
+  const [isVideoOn, setVideoOn] = useState(initialVideoOn);
 
   return (
     <TooltipProvider>
       <div className="bg-card/80 backdrop-blur-sm p-4 flex justify-center items-center gap-2 md:gap-4 border-t">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="lg" className="rounded-full w-16 h-16" onClick={() => setMicOn(!isMicOn)}>
+            <Button variant={isMicOn ? "outline" : "destructive"} size="lg" className="rounded-full w-16 h-16" onClick={() => setMicOn(!isMicOn)}>
               {isMicOn ? <Mic className="w-7 h-7" /> : <MicOff className="w-7 h-7" />}
             </Button>
           </TooltipTrigger>
@@ -25,7 +30,7 @@ export function ControlBar() {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="lg" className="rounded-full w-16 h-16" onClick={() => setVideoOn(!isVideoOn)}>
+            <Button variant={isVideoOn ? "outline" : "destructive"} size="lg" className="rounded-full w-16 h-16" onClick={() => setVideoOn(!isVideoOn)}>
               {isVideoOn ? <Video className="w-7 h-7" /> : <VideoOff className="w-7 h-7" />}
             </Button>
           </TooltipTrigger>
