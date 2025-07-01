@@ -51,13 +51,13 @@ export function ParticlesContainer() {
       },
       particles: {
         color: {
-          value: "hsl(var(--accent))",
+          value: "hsl(var(--primary))",
         },
         links: {
-          color: "hsl(var(--accent))",
+          color: "hsl(var(--primary))",
           distance: 150,
           enable: true,
-          opacity: 0.4,
+          opacity: 0.3,
           width: 1,
         },
         move: {
@@ -77,13 +77,13 @@ export function ParticlesContainer() {
           value: 150,
         },
         opacity: {
-          value: 0.6,
+          value: 0.5,
         },
         shape: {
           type: "circle",
         },
         size: {
-          value: { min: 1, max: 3 },
+          value: { min: 1, max: 2 },
         },
       },
       detectRetina: true,
