@@ -45,6 +45,7 @@ export default function Home() {
       ref={vantaRef}
       className="relative w-full min-h-screen overflow-hidden flex flex-col items-center justify-center"
     >
+      <div className="absolute inset-0 bg-black/60 z-0"></div>
       <div className="relative z-10 flex flex-col justify-center items-center text-center px-4 py-20">
         <h1 className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-400 bg-clip-text text-transparent animate-gradient">
           TrainerMeet
