@@ -44,20 +44,20 @@ export function ParticlesContainer() {
             quantity: 4,
           },
           repulse: {
-            distance: 200,
+            distance: 150,
             duration: 0.4,
           },
         },
       },
       particles: {
         color: {
-          value: "hsl(var(--primary-foreground))",
+          value: "hsl(var(--accent))",
         },
         links: {
-          color: "hsl(var(--primary-foreground))",
+          color: "hsl(var(--accent))",
           distance: 150,
           enable: true,
-          opacity: 0.3,
+          opacity: 0.4,
           width: 1,
         },
         move: {
@@ -74,10 +74,10 @@ export function ParticlesContainer() {
           density: {
             enable: true,
           },
-          value: 100,
+          value: 150,
         },
         opacity: {
-          value: 0.3,
+          value: 0.6,
         },
         shape: {
           type: "circle",

@@ -40,7 +40,7 @@ export function UpcomingMeetings() {
       <h2 className="text-2xl font-bold mb-4 font-headline">Upcoming Meetings</h2>
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         {meetings.map((meeting) => (
-          <Card key={meeting.id}>
+          <Card key={meeting.id} className="transition-all hover:shadow-lg hover:shadow-primary/30">
             <CardHeader>
               <CardTitle>{meeting.title}</CardTitle>
               <CardDescription>{meeting.description}</CardDescription>

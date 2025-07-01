@@ -60,12 +60,12 @@ export default function DashboardPage() {
       <main className="flex-1 p-4 md:p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold font-headline">Welcome back, {user?.displayName || 'Trainer'}!</h1>
-          <p className="text-muted-foreground">Here's your dashboard to manage your training sessions.</p>
+          <p className="text-muted-foreground font-code">Here's your dashboard to manage your training sessions.</p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-8">
-            <Card>
+            <Card className="transition-all hover:shadow-lg hover:shadow-primary/40">
               <CardHeader>
                 <CardTitle>Start a Session</CardTitle>
                 <CardDescription>Launch a new training session instantly or schedule one for later.</CardDescription>
@@ -86,7 +86,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="lg:col-span-1 space-y-8">
-            <Card>
+            <Card className="transition-all hover:shadow-lg hover:shadow-primary/30">
               <CardHeader>
                 <CardTitle>At a Glance</CardTitle>
               </CardHeader>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-accent/20 border-accent/50">
+            <Card className="bg-accent/20 border-accent/50 shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="text-accent" /> AI Assistant
