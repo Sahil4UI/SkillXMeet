@@ -12,53 +12,97 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Send } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { useMeeting } from '@/context/meeting-context';
+import { useAuth } from '@/context/auth-context';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
-const messages = [
-    { user: 'Student 1', text: 'Can you please explain that again?', time: '14:05' },
-    { user: 'Trainer', text: 'Of course! Which part was unclear?', time: '14:06' },
-    { user: 'Student 3', text: 'The part about the custom hook return value.', time: '14:06' },
-    { user: 'Student 2', text: 'I have the same question.', time: '14:07' },
-];
 
 export function ChatPanel({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const { messages, sendMessage } = useMeeting();
+  const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newMessage.trim()) {
+      sendMessage(newMessage);
+      setNewMessage('');
+    }
+  };
+
+  const formatTimestamp = (timestamp: any) => {
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      try {
+        return format(timestamp.toDate(), 'HH:mm');
+      } catch (e) {
+        return "";
+      }
+    }
+    return '';
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent>
+      <SheetContent className="flex flex-col">
         <SheetHeader>
           <SheetTitle>Session Chat</SheetTitle>
           <SheetDescription>Messages are visible to everyone in the meeting.</SheetDescription>
         </SheetHeader>
         <Separator className="my-4" />
-        <div className="h-[calc(100%-8rem)] flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1 pr-4">
             <div className="flex flex-col gap-4">
-              {messages.map((msg, i) => (
-                <div key={i} className="flex gap-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={`https://placehold.co/40x40`} data-ai-hint="person avatar"/>
-                    <AvatarFallback>{msg.user.substring(0, 2)}</AvatarFallback>
-                  </Avatar>
-                  <div>
+              {messages.map((msg) => (
+                <div key={msg.id} className={cn("flex gap-2", {
+                  'justify-end': msg.uid === user?.uid
+                })}>
+                  {msg.uid !== user?.uid && (
+                    <Avatar className="h-8 w-8 self-end">
+                      <AvatarImage src={`https://placehold.co/40x40`} data-ai-hint="person avatar"/>
+                      <AvatarFallback>{msg.displayName?.substring(0, 2) || 'G'}</AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div className={cn("rounded-lg p-3 max-w-xs md:max-w-md", {
+                      'bg-primary text-primary-foreground': msg.uid === user?.uid,
+                      'bg-muted': msg.uid !== user?.uid
+                  })}>
                     <div className="flex items-baseline gap-2">
-                      <p className="font-bold text-sm">{msg.user}</p>
-                      <p className="text-xs text-muted-foreground">{msg.time}</p>
+                      <p className="font-bold text-sm">{msg.uid === user?.uid ? 'You' : msg.displayName}</p>
+                      <p className="text-xs opacity-80">{formatTimestamp(msg.timestamp)}</p>
                     </div>
-                    <p className="text-sm">{msg.text}</p>
+                    <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
-          <div className="mt-auto py-4">
-            <div className="flex gap-2">
-              <Input placeholder="Type a message..." />
-              <Button size="icon">
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
         </div>
+        <form onSubmit={handleSendMessage} className="mt-auto py-4 border-t">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+            />
+            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+              <Send className="h-4 w-4" />
+              <span className="sr-only">Send message</span>
+            </Button>
+          </div>
+        </form>
       </SheetContent>
     </Sheet>
   );

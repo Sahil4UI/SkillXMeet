@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
-import { collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getFirestore, addDoc, query, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getFirestore, addDoc, query, where, writeBatch, orderBy } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 
 export interface Participant {
@@ -11,6 +11,14 @@ export interface Participant {
     joinedAt: any;
 }
 
+export interface ChatMessage {
+  id: string;
+  uid: string;
+  displayName: string | null;
+  text: string;
+  timestamp: any; // Firestore timestamp
+}
+
 interface MeetingContextType {
   participants: Participant[];
   localStream: MediaStream | null;
@@ -18,10 +26,12 @@ interface MeetingContextType {
   isMicOn: boolean;
   isVideoOn: boolean;
   isScreenSharing: boolean;
+  messages: ChatMessage[];
   toggleMic: () => void;
   toggleVideo: () => void;
   toggleScreenShare: () => void;
   leaveMeeting: () => void;
+  sendMessage: (text: string) => void;
 }
 
 const MeetingContext = createContext<MeetingContextType>({
@@ -31,10 +41,12 @@ const MeetingContext = createContext<MeetingContextType>({
   isMicOn: true,
   isVideoOn: true,
   isScreenSharing: false,
+  messages: [],
   toggleMic: () => {},
   toggleVideo: () => {},
   toggleScreenShare: () => {},
   leaveMeeting: () => {},
+  sendMessage: () => {},
 });
 
 // Using public STUN servers
@@ -45,6 +57,7 @@ const configuration = {
 export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initialVideoOn }: { children: ReactNode; meetingId: string; user: User; initialMicOn: boolean; initialVideoOn: boolean }) => {
   const firestore = getFirestore();
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
   const [isMicOn, setMicOn] = useState(initialMicOn);
@@ -109,7 +122,19 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
       const updatedParticipants = snapshot.docs.map(doc => doc.data() as Participant);
       setParticipants(updatedParticipants);
     });
-    signalingSubs.current.push(participantsUnsub);
+    
+    // Listen for chat messages
+    const messagesCol = collection(firestore, 'meetings', meetingId, 'messages');
+    const messagesQuery = query(messagesCol, orderBy('timestamp', 'asc'));
+    const messagesUnsub = onSnapshot(messagesQuery, (snapshot) => {
+      const newMessages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as ChatMessage));
+      setMessages(newMessages);
+    });
+
+    signalingSubs.current.push(participantsUnsub, messagesUnsub);
 
 
     const handleSignaling = async (from: string) => {
@@ -230,6 +255,22 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
         setVideoOn(!isVideoOn);
     }
   };
+  
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim() || !firestore || !user) return;
+
+    const messagesCol = collection(firestore, 'meetings', meetingId, 'messages');
+    try {
+        await addDoc(messagesCol, {
+          uid: user.uid,
+          displayName: user.displayName,
+          text: text.trim(),
+          timestamp: serverTimestamp(),
+        });
+    } catch(error) {
+        console.error("Error sending message:", error);
+    }
+  }, [firestore, meetingId, user]);
 
   const toggleScreenShare = useCallback(async () => {
     if (!localStream) return;
@@ -290,7 +331,7 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
   }, [localStream, isScreenSharing]);
 
 
-  const value = { participants, localStream, remoteStreams, isMicOn, isVideoOn, isScreenSharing, toggleMic, toggleVideo, toggleScreenShare, leaveMeeting };
+  const value = { participants, localStream, remoteStreams, isMicOn, isVideoOn, isScreenSharing, messages, toggleMic, toggleVideo, toggleScreenShare, leaveMeeting, sendMessage };
   return <MeetingContext.Provider value={value}>{children}</MeetingContext.Provider>;
 };
 
