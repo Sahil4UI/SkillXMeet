@@ -1,12 +1,7 @@
-'use client';
-
+// This is now a Server Component
 import { Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/context/auth-context';
-import { MeetingProvider } from '@/context/meeting-context';
-import { ControlBar } from '@/components/meeting/control-bar';
-import { VideoGrid } from '@/components/meeting/video-grid';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MeetingPageClient } from './meeting-page-client';
 
 function MeetingPageSkeleton() {
   return (
@@ -28,45 +23,23 @@ function MeetingPageSkeleton() {
   );
 }
 
-function MeetingPageContent({ params }: { params: { id: string } }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export default function MeetingPage({ 
+  params,
+  searchParams 
+}: { 
+  params: { id: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const initialMicOn = searchParams?.mic !== 'false';
+  const initialVideoOn = searchParams?.video !== 'false';
 
-  const initialMicOn = searchParams.get('mic') !== 'false';
-  const initialVideoOn = searchParams.get('video') !== 'false';
-
-  if (loading || !user) {
-    // We can show a skeleton here, but AuthProvider will redirect to login if not authenticated.
-    // So this is mainly for the initial loading state.
-    return <MeetingPageSkeleton />;
-  }
-
-  return (
-    <MeetingProvider 
-      meetingId={params.id} 
-      user={user}
-      initialMicOn={initialMicOn}
-      initialVideoOn={initialVideoOn}
-    >
-      <div className="h-screen w-screen flex flex-col bg-muted/30">
-        <div className="flex-1 relative overflow-hidden">
-          <VideoGrid />
-          <div className="absolute top-4 left-4 bg-black/50 text-white p-2 px-4 rounded-lg z-10">
-              <h1 className="text-lg font-bold font-headline">Advanced React Hooks ({params.id})</h1>
-          </div>
-        </div>
-        <ControlBar />
-      </div>
-    </MeetingProvider>
-  );
-}
-
-export default function MeetingPage({ params }: { params: { id:string } }) {
-  // Use a Suspense boundary to handle the loading of search parameters
   return (
     <Suspense fallback={<MeetingPageSkeleton />}>
-      <MeetingPageContent params={params} />
+      <MeetingPageClient 
+        meetingId={params.id}
+        initialMicOn={initialMicOn}
+        initialVideoOn={initialVideoOn}
+      />
     </Suspense>
-  )
+  );
 }
