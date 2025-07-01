@@ -51,7 +51,7 @@ export default function SignupPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
       <Link href="/" className="absolute top-8 left-8 flex items-center gap-2">
         <Video className="w-8 h-8 text-primary" />
-        <h1 className="text-2xl font-bold text-primary font-headline">TrainerMeet</h1>
+        <h1 className="text-2xl font-bold text-primary font-headline">SkillsMeet</h1>
       </Link>
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="text-center">

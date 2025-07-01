@@ -33,7 +33,7 @@ export function Header() {
     <header className="flex items-center justify-between p-4 border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
       <Link href="/" className="flex items-center gap-2">
         <Video className="w-8 h-8 text-primary" />
-        <h1 className="text-2xl font-bold font-headline text-gradient animate-gradient">TrainerMeet</h1>
+        <h1 className="text-2xl font-bold font-headline text-gradient animate-gradient">SkillsMeet</h1>
       </Link>
       <div className="flex items-center gap-4">
         <ThemeSwitcher />

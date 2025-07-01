@@ -13,10 +13,10 @@ export default function Home() {
   const mainContent = (
      <div className="relative z-10 flex flex-col justify-center items-center text-center px-4 py-20">
         <h1 className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-400 bg-clip-text text-transparent animate-gradient">
-          TrainerMeet
+          SkillsMeet
         </h1>
         <p className="mt-4 text-lg md:text-xl text-foreground/80 max-w-2xl">
-          Your next-gen video meeting platform with vibrant, interactive visuals 🚀
+          The modern platform to learn and master computer skills. 🚀
         </p>
 
         {loading ? (

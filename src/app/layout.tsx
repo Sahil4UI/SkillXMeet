@@ -13,8 +13,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'TrainerMeet',
-  description: 'Online classes for trainers and students.',
+  title: 'SkillsMeet',
+  description: 'Interactive online learning platform for tech skills.',
 };
 
 export default function RootLayout({
