@@ -17,6 +17,7 @@ import { LogOut, Video } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from './ui/skeleton';
+import { ThemeSwitcher } from './theme-switcher';
 
 export function Header() {
   const { user, loading } = useAuth();
@@ -29,40 +30,40 @@ export function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between p-4 border-b bg-card">
+    <header className="flex items-center justify-between p-4 border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
       <Link href="/" className="flex items-center gap-2">
         <Video className="w-8 h-8 text-primary" />
-        <h1 className="text-2xl font-bold text-primary font-headline">TrainerMeet</h1>
+        <h1 className="text-2xl font-bold font-headline text-gradient">TrainerMeet</h1>
       </Link>
-      {loading ? (
-        <Skeleton className="h-10 w-10 rounded-full" />
-      ) : user ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Avatar className="cursor-pointer">
-              <AvatarImage src={user.photoURL || "https://placehold.co/40x40"} alt={user.displayName || 'User'} data-ai-hint="person avatar" />
-              <AvatarFallback>{user.email?.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4">
+        {loading ? (
+          <Skeleton className="h-10 w-10 rounded-full" />
+        ) : user ? (
+          <>
+            <ThemeSwitcher />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Avatar className="cursor-pointer">
+                  <AvatarImage src={user.photoURL || "https://placehold.co/40x40"} alt={user.displayName || 'User'} data-ai-hint="person avatar" />
+                  <AvatarFallback>{user.email?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        ) : (
+          <div className="flex items-center gap-2">
             <Button asChild variant="ghost">
-                <Link href="/login">Login</Link>
+              <Link href="/login">Login</Link>
             </Button>
             <Button asChild>
-                <Link href="/signup">Sign Up</Link>
+              <Link href="/signup">Sign Up</Link>
             </Button>
-        </div>
-      )}
-    </header>
-  );
-}
+          </div>

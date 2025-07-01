@@ -59,7 +59,7 @@ export default function DashboardPage() {
       <Header />
       <main className="flex-1 p-4 md:p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold font-headline">Welcome back, {user?.displayName || 'Trainer'}!</h1>
+          <h1 className="text-3xl font-bold font-headline text-gradient animate-gradient">Welcome back, {user?.displayName || 'Trainer'}!</h1>
           <p className="text-muted-foreground font-code">Here's your dashboard to manage your training sessions.</p>
         </div>
 
@@ -138,4 +138,3 @@ export default function DashboardPage() {
       </main>
     </div>
   );
-}
