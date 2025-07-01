@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Edit, MoreVertical, Trash } from 'lucide-react';
+import { Calendar, Clock, Edit, MoreVertical, Trash, Share2 } from 'lucide-react';
 import { FormattedDate } from './formatted-date';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, getFirestore, orderBy } from 'firebase/firestore';
@@ -34,6 +34,7 @@ import {
 import { deleteMeeting } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScheduleDialog } from './schedule-dialog';
+import { ShareMeetingDialog } from './share-meeting-dialog';
 
 interface Meeting {
     id: string;
@@ -53,6 +54,7 @@ export function UpcomingMeetings() {
   const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
+  const [isShareDialogOpen, setShareDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
 
   useEffect(() => {
@@ -97,6 +99,11 @@ export function UpcomingMeetings() {
     setEditDialogOpen(true);
   }
 
+  const openShareDialog = (meeting: Meeting) => {
+    setSelectedMeeting(meeting);
+    setShareDialogOpen(true);
+  }
+
   if (authLoading || loading) {
     return (
         <div>
@@ -135,6 +142,9 @@ export function UpcomingMeetings() {
                                     <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => openShareDialog(meeting)}>
+                                        <Share2 className="mr-2 h-4 w-4" /> Share
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => openEditDialog(meeting)}>
                                         <Edit className="mr-2 h-4 w-4" /> Edit
                                     </DropdownMenuItem>
@@ -188,13 +198,21 @@ export function UpcomingMeetings() {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Edit Dialog */}
+      {/* Edit and Share Dialogs */}
       {selectedMeeting && (
-        <ScheduleDialog
-          isOpen={isEditDialogOpen}
-          setIsOpen={setEditDialogOpen}
-          initialData={selectedMeeting}
-        />
+        <>
+          <ScheduleDialog
+            isOpen={isEditDialogOpen}
+            setIsOpen={setEditDialogOpen}
+            initialData={selectedMeeting}
+          />
+          <ShareMeetingDialog
+            isOpen={isShareDialogOpen}
+            setIsOpen={setShareDialogOpen}
+            meetingId={selectedMeeting.id}
+            meetingTitle={selectedMeeting.title}
+          />
+        </>
       )}
     </div>
   );
