@@ -1,64 +1,82 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useRef } from 'react';
 import { useMeeting, type Participant } from '@/context/meeting-context';
 import { useAuth } from '@/context/auth-context';
+import { MicOff, VideoOff } from 'lucide-react';
 
-export function VideoGrid() {
+interface VideoTileProps {
+  participant?: Participant;
+  stream: MediaStream | null;
+  isLocal: boolean;
+  isMicOn?: boolean;
+  isVideoOn?: boolean;
+}
+
+function VideoTile({ stream, participant, isLocal, isMicOn, isVideoOn }: VideoTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const { participants } = useMeeting();
   const { user } = useAuth();
+  
+  const displayName = isLocal ? 'You' : participant?.displayName || 'Guest';
 
   useEffect(() => {
-    const getMedia = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (err) {
-        console.error("Error accessing media devices in VideoGrid: ", err);
-      }
-    };
-    getMedia();
-
-    return () => {
-      streamRef.current?.getTracks().forEach(track => track.stop());
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
     }
-  }, []);
-
-  const otherParticipants = participants.filter(p => p.uid !== user?.uid);
-  const totalParticipants = 1 + otherParticipants.length;
-
-  // Basic logic to determine layout, can be made more sophisticated
-  let layoutClasses = "";
-  if (totalParticipants <= 1) layoutClasses = "md:grid-cols-1";
-  else if (totalParticipants <= 2) layoutClasses = "md:grid-cols-2";
-  else if (totalParticipants <= 4) layoutClasses = "md:grid-cols-2";
-  else if (totalParticipants <= 9) layoutClasses = "md:grid-cols-3";
-  else layoutClasses = "md:grid-cols-4";
-  
+  }, [stream]);
 
   return (
-    <div className={`grid grid-cols-1 ${layoutClasses} gap-4 p-4 h-full w-full bg-muted/20 overflow-y-auto`}>
-      {/* My Video */}
-      <div className="relative rounded-lg overflow-hidden shadow-lg bg-black aspect-video flex items-center justify-center">
-        <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
-        <div className="absolute bottom-2 left-2 bg-black/50 text-white text-sm px-2 py-1 rounded">
-          You
+    <div className="relative rounded-lg overflow-hidden shadow-lg bg-black aspect-video flex items-center justify-center text-white">
+      <video 
+        ref={videoRef} 
+        autoPlay 
+        muted={isLocal} // Only mute local stream to prevent echo
+        playsInline 
+        className={`w-full h-full object-cover ${isLocal ? 'transform scale-x-[-1]' : ''} ${!isVideoOn && 'hidden'}`}
+      />
+      {!isVideoOn && (
+        <div className="flex flex-col items-center gap-2">
+            <VideoOff className="w-12 h-12" />
+            <p className="text-lg">Video is off</p>
         </div>
+      )}
+      <div className="absolute bottom-2 left-2 bg-black/50 text-white text-sm px-2 py-1 rounded flex items-center gap-2">
+        {!isMicOn && <MicOff className="w-4 h-4 text-red-500" />}
+        <span>{displayName}</span>
       </div>
+    </div>
+  );
+}
+
+
+export function VideoGrid() {
+  const { participants, localStream, remoteStreams, isMicOn, isVideoOn } = useMeeting();
+  const { user } = useAuth();
+
+  const otherParticipants = participants.filter(p => p.uid !== user?.uid);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 h-full w-full overflow-y-auto">
+      {/* My Video */}
+      {localStream && (
+        <VideoTile 
+          stream={localStream}
+          isLocal={true}
+          isMicOn={isMicOn}
+          isVideoOn={isVideoOn}
+        />
+      )}
+      
       {/* Other participants */}
       {otherParticipants.map(p => (
-        <div key={p.uid} className="relative rounded-lg overflow-hidden shadow-lg bg-black aspect-video flex items-center justify-center">
-          <Image src={p.photoURL || "https://placehold.co/400x300"} fill className="object-cover" alt={`${p.displayName}'s video`} data-ai-hint="person video call" />
-          <div className="absolute bottom-2 left-2 bg-black/50 text-white text-sm px-2 py-1 rounded">
-            {p.displayName}
-          </div>
-        </div>
+         <VideoTile 
+            key={p.uid}
+            participant={p}
+            stream={remoteStreams[p.uid] || null} 
+            isLocal={false}
+            isMicOn={true} // Placeholder: In a full app, this state would also be synced
+            isVideoOn={!!remoteStreams[p.uid]} // Basic check if stream exists
+        />
       ))}
     </div>
   );

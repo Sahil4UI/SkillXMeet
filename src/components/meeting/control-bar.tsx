@@ -1,27 +1,28 @@
 'use client';
-import { useState } from 'react';
+import { useMeeting } from '@/context/meeting-context';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Mic, MicOff, Video, VideoOff, ScreenShare, MessageSquare, Users, Phone, Sparkles } from 'lucide-react';
 import { ChatPanel } from './chat-panel';
 import { ParticipantPanel } from './participant-panel';
 import { AiToolSuggesterDialog } from './ai-tool-suggester-dialog';
+import { useRouter } from 'next/navigation';
 
-interface ControlBarProps {
-  initialMicOn?: boolean;
-  initialVideoOn?: boolean;
-}
+export function ControlBar() {
+  const { isMicOn, isVideoOn, toggleMic, toggleVideo, leaveMeeting } = useMeeting();
+  const router = useRouter();
 
-export function ControlBar({ initialMicOn = true, initialVideoOn = true }: ControlBarProps) {
-  const [isMicOn, setMicOn] = useState(initialMicOn);
-  const [isVideoOn, setVideoOn] = useState(initialVideoOn);
+  const handleLeave = () => {
+    leaveMeeting();
+    router.push('/');
+  }
 
   return (
     <TooltipProvider>
       <div className="bg-card/80 backdrop-blur-sm p-4 flex justify-center items-center gap-2 md:gap-4 border-t">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant={isMicOn ? "outline" : "destructive"} size="lg" className="rounded-full w-16 h-16" onClick={() => setMicOn(!isMicOn)}>
+            <Button variant={isMicOn ? "outline" : "destructive"} size="lg" className="rounded-full w-16 h-16" onClick={toggleMic}>
               {isMicOn ? <Mic className="w-7 h-7" /> : <MicOff className="w-7 h-7" />}
             </Button>
           </TooltipTrigger>
@@ -30,7 +31,7 @@ export function ControlBar({ initialMicOn = true, initialVideoOn = true }: Contr
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant={isVideoOn ? "outline" : "destructive"} size="lg" className="rounded-full w-16 h-16" onClick={() => setVideoOn(!isVideoOn)}>
+            <Button variant={isVideoOn ? "outline" : "destructive"} size="lg" className="rounded-full w-16 h-16" onClick={toggleVideo}>
               {isVideoOn ? <Video className="w-7 h-7" /> : <VideoOff className="w-7 h-7" />}
             </Button>
           </TooltipTrigger>
@@ -81,7 +82,7 @@ export function ControlBar({ initialMicOn = true, initialVideoOn = true }: Contr
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="destructive" size="lg" className="rounded-full w-24 h-16">
+            <Button variant="destructive" size="lg" className="rounded-full w-24 h-16" onClick={handleLeave}>
               <Phone className="w-7 h-7" />
             </Button>
           </TooltipTrigger>
