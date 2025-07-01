@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock } from 'lucide-react';
+import { FormattedDate } from './formatted-date';
 
 const meetings = [
   {
@@ -49,7 +50,10 @@ export function UpcomingMeetings() {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  <span>{new Date(meeting.date).toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'UTC' })}</span>
+                  <FormattedDate 
+                    date={meeting.date} 
+                    options={{ dateStyle: 'long', timeZone: 'UTC' }} 
+                  />
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
