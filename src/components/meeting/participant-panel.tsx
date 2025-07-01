@@ -20,8 +20,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
   } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "../ui/skeleton";
-
 
 export function ParticipantPanel({ children }: { children: React.ReactNode }) {
   const { participants } = useMeeting();
@@ -50,8 +48,8 @@ export function ParticipantPanel({ children }: { children: React.ReactNode }) {
                             <span className="font-medium">{p.displayName} {p.uid === user.uid ? '(You)' : ''}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Video className="h-5 w-5 text-primary"/>
-                            <Mic className="h-5 w-5 text-primary"/>
+                            {p.isVideoOn ? <Video className="h-5 w-5 text-primary"/> : <VideoOff className="h-5 w-5 text-muted-foreground"/>}
+                            {p.isMicOn ? <Mic className="h-5 w-5 text-primary"/> : <MicOff className="h-5 w-5 text-muted-foreground" />}
                             {p.uid !== user.uid && (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -60,10 +58,10 @@ export function ParticipantPanel({ children }: { children: React.ReactNode }) {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent>
-                                        <DropdownMenuItem><MicOff className="mr-2"/> Mute</DropdownMenuItem>
-                                        <DropdownMenuItem><VideoOff className="mr-2"/> Stop video</DropdownMenuItem>
+                                        <DropdownMenuItem disabled><MicOff className="mr-2"/> Mute</DropdownMenuItem>
+                                        <DropdownMenuItem disabled><VideoOff className="mr-2"/> Stop video</DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" disabled>
                                             <X className="mr-2"/> Remove
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>

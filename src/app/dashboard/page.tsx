@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { Header } from '@/components/header';
@@ -16,6 +16,7 @@ import { AiToolSuggesterDialog } from '@/components/meeting/ai-tool-suggester-di
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [isScheduleDialogOpen, setScheduleDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -57,9 +58,13 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
+       <ScheduleDialog 
+          isOpen={isScheduleDialogOpen} 
+          setIsOpen={setScheduleDialogOpen}
+      />
       <main className="flex-1 p-4 md:p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold font-headline text-gradient animate-gradient">Welcome back, {user?.displayName?.split(' ')[0] || 'Sahil'}!</h1>
+          <h1 className="text-3xl font-bold font-headline text-gradient animate-gradient">Welcome back, {user?.displayName?.split(' ')[0] || 'User'}!</h1>
           <p className="text-muted-foreground font-code">Here's your dashboard to manage your training sessions.</p>
         </div>
 
@@ -74,11 +79,9 @@ export default function DashboardPage() {
                  <Button size="lg" onClick={() => router.push(`/meeting/${Math.random().toString(36).substring(2, 9)}/lobby`)}>
                     <Video className="mr-2" /> New Instant Meeting
                  </Button>
-                 <ScheduleDialog>
-                    <Button size="lg" variant="outline">
-                        <CalendarPlus className="mr-2" /> Schedule for Later
-                    </Button>
-                 </ScheduleDialog>
+                <Button size="lg" variant="outline" onClick={() => setScheduleDialogOpen(true)}>
+                    <CalendarPlus className="mr-2" /> Schedule for Later
+                </Button>
               </CardContent>
             </Card>
 
@@ -98,10 +101,9 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="font-medium">Next Meeting</p>
-                      <p className="text-sm text-muted-foreground">Advanced React Hooks</p>
+                      <p className="text-sm text-muted-foreground">Check upcoming meetings</p>
                     </div>
                   </div>
-                  <p className="font-bold text-sm">Today, 14:00</p>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -109,11 +111,12 @@ export default function DashboardPage() {
                       <Users className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium">Meetings This Week</p>
-                      <p className="text-sm text-muted-foreground">Total scheduled</p>
+                      <p className="font-medium">Total Meetings</p>
+                      <p className="text-sm text-muted-foreground">All scheduled</p>
                     </div>
                   </div>
-                  <p className="font-bold text-2xl">3</p>
+                  {/* This would ideally come from the fetched meetings length */}
+                  <p className="font-bold text-2xl">...</p>
                 </div>
               </CardContent>
             </Card>

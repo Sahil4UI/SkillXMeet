@@ -9,23 +9,46 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Mic, MicOff, Video, VideoOff, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
 
 export default function LobbyPage({ params }: { params: { id: string } }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const db = getFirestore();
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isMicOn, setMicOn] = useState(true);
   const [isVideoOn, setVideoOn] = useState(true);
+  const [meetingCreatorId, setMeetingCreatorId] = useState<string | null>(null);
+  const [isCreator, setIsCreator] = useState(false);
   
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
+    } else if (user && db) {
+      const fetchMeeting = async () => {
+        const meetingRef = doc(db, 'meetings', params.id);
+        const meetingSnap = await getDoc(meetingRef);
+        if (meetingSnap.exists()) {
+          const meetingData = meetingSnap.data();
+          setMeetingCreatorId(meetingData.creatorId);
+          if (user.uid === meetingData.creatorId) {
+            setIsCreator(true);
+          }
+        }
+      }
+      // Only fetch meeting data if it's not an "instant" meeting
+      if (params.id.length > 7) {
+        fetchMeeting();
+      } else {
+        // For instant meetings, the first person is the creator
+        setIsCreator(true);
+      }
     }
-  }, [user, loading, router, params.id]);
+  }, [user, loading, router, params.id, db]);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -64,12 +87,11 @@ export default function LobbyPage({ params }: { params: { id: string } }) {
     if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => {
             if (track.kind === kind) {
+                track.enabled = !track.enabled;
                 if (kind === 'video') {
-                    track.enabled = !isVideoOn;
-                    setVideoOn(!isVideoOn);
+                    setVideoOn(prev => !prev);
                 } else if (kind === 'audio') {
-                    track.enabled = !isMicOn;
-                    setMicOn(!isMicOn);
+                    setMicOn(prev => !prev);
                 }
             }
         });
@@ -135,7 +157,7 @@ export default function LobbyPage({ params }: { params: { id: string } }) {
           </div>
           <p className="text-muted-foreground">You are joining meeting <span className="font-bold text-foreground">{params.id}</span></p>
           <Button size="lg" disabled={hasCameraPermission !== true} onClick={handleJoin}>
-            Ask to Join
+            {isCreator ? 'Join Meeting' : 'Ask to Join'}
           </Button>
 
            {hasCameraPermission === false && (

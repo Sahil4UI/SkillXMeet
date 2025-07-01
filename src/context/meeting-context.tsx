@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
-import { collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getFirestore, addDoc, query, where, writeBatch, orderBy } from 'firebase/firestore';
+import { collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, getFirestore, addDoc, query, writeBatch, orderBy, updateDoc, getDocs } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 
 export interface Participant {
@@ -9,6 +9,9 @@ export interface Participant {
     displayName: string | null;
     photoURL: string | null;
     joinedAt: any;
+    isMicOn: boolean;
+    isVideoOn: boolean;
+    isScreenSharing: boolean;
 }
 
 export interface ChatMessage {
@@ -49,7 +52,6 @@ const MeetingContext = createContext<MeetingContextType>({
   sendMessage: () => {},
 });
 
-// Using public STUN servers
 const configuration = {
   iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }],
 };
@@ -60,6 +62,8 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
+  
+  // Local state for controls
   const [isMicOn, setMicOn] = useState(initialMicOn);
   const [isVideoOn, setVideoOn] = useState(initialVideoOn);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -68,29 +72,42 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
   const signalingSubs = useRef<Array<() => void>>([]);
   const cameraVideoTrackRef = useRef<MediaStreamTrack | null>(null);
 
-
-  const leaveMeeting = useCallback(() => {
-    // Stop local media tracks
+  const cleanupConnections = useCallback(() => {
     localStream?.getTracks().forEach(track => track.stop());
     cameraVideoTrackRef.current?.stop();
+    setLocalStream(null);
 
-    // Close all peer connections
     Object.values(pcs.current).forEach(pc => pc.close());
     pcs.current = {};
 
-    // Unsubscribe from all Firestore listeners
     signalingSubs.current.forEach(unsub => unsub());
     signalingSubs.current = [];
+    
+    setRemoteStreams({});
 
-    // Remove user from participants list
-    if (firestore) {
-      const userDocRef = doc(firestore, 'meetings', meetingId, 'participants', user.uid);
-      deleteDoc(userDocRef);
+    if (firestore && user) {
+        const userDocRef = doc(firestore, 'meetings', meetingId, 'participants', user.uid);
+        deleteDoc(userDocRef);
+        
+        const webrtcRef = collection(firestore, `meetings/${meetingId}/webrtc`);
+        getDocs(webrtcRef).then(snapshot => {
+            const batch = writeBatch(firestore);
+            snapshot.docs.forEach(doc => {
+                if (doc.id.includes(user.uid)) {
+                    batch.delete(doc.ref);
+                }
+            })
+            return batch.commit();
+        })
     }
-  }, [localStream, firestore, meetingId, user.uid]);
+  }, [localStream, firestore, meetingId, user]);
+
+
+  const leaveMeeting = useCallback(() => {
+    cleanupConnections();
+  }, [cleanupConnections]);
   
   useEffect(() => {
-    // Get local media stream
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .then(stream => {
         stream.getAudioTracks()[0].enabled = initialMicOn;
@@ -100,168 +117,247 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
       })
       .catch(error => console.error("Error accessing media devices.", error));
 
-    // Add cleanup function for when component unmounts
+    const handleBeforeUnload = () => {
+      leaveMeeting();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
-        leaveMeeting();
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        cleanupConnections();
     };
   }, [initialMicOn, initialVideoOn, leaveMeeting]);
+
+  const setupPeerConnection = useCallback((peerId: string) => {
+    if (!localStream || !firestore) return;
+    
+    pcs.current[peerId] = new RTCPeerConnection(configuration);
+    
+    localStream.getTracks().forEach(track => {
+      pcs.current[peerId].addTrack(track, localStream);
+    });
+
+    pcs.current[peerId].ontrack = (event) => {
+      setRemoteStreams(prev => ({ ...prev, [peerId]: event.streams[0] }));
+    };
+
+    pcs.current[peerId].onconnectionstatechange = () => {
+        if(pcs.current[peerId]?.connectionState === 'disconnected' || pcs.current[peerId]?.connectionState === 'closed' || pcs.current[peerId]?.connectionState === 'failed'){
+            setRemoteStreams(prev => {
+                const newStreams = {...prev};
+                delete newStreams[peerId];
+                return newStreams;
+            });
+            pcs.current[peerId]?.close();
+            delete pcs.current[peerId];
+        }
+    }
+  }, [localStream, firestore]);
+  
 
   useEffect(() => {
     if (!localStream || !firestore) return;
 
-    // Join the meeting
     const userDocRef = doc(firestore, 'meetings', meetingId, 'participants', user.uid);
     setDoc(userDocRef, {
         uid: user.uid,
         displayName: user.displayName,
         photoURL: user.photoURL,
+        isMicOn: initialMicOn,
+        isVideoOn: initialVideoOn,
+        isScreenSharing: false,
         joinedAt: serverTimestamp(),
-    });
-
-    const participantsUnsub = onSnapshot(collection(firestore, 'meetings', meetingId, 'participants'), (snapshot) => {
-      const updatedParticipants = snapshot.docs.map(doc => doc.data() as Participant);
-      setParticipants(updatedParticipants);
-    });
+    }, { merge: true });
     
-    // Listen for chat messages
-    const messagesCol = collection(firestore, 'meetings', meetingId, 'messages');
-    const messagesQuery = query(messagesCol, orderBy('timestamp', 'asc'));
-    const messagesUnsub = onSnapshot(messagesQuery, (snapshot) => {
-      const newMessages = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as ChatMessage));
-      setMessages(newMessages);
-    });
+    // --- Main Participants Listener ---
+    const participantsCol = collection(firestore, 'meetings', meetingId, 'participants');
+    const participantsUnsub = onSnapshot(query(participantsCol, orderBy('joinedAt')), (snapshot) => {
+      const newParticipants: Participant[] = [];
+      snapshot.forEach(doc => newParticipants.push(doc.data() as Participant));
 
-    signalingSubs.current.push(participantsUnsub, messagesUnsub);
-
-
-    const handleSignaling = async (from: string) => {
-      const pc = new RTCPeerConnection(configuration);
-      pcs.current[from] = pc;
+      // Get the current list of participant uids
+      const currentParticipantUids = participants.map(p => p.uid);
       
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      setParticipants(newParticipants);
       
-      pc.ontrack = event => {
-        setRemoteStreams(prev => ({ ...prev, [from]: event.streams[0] }));
-      };
-
-      const signalingCol = collection(firestore, `meetings/${meetingId}/webrtc`);
-      const callDoc = doc(signalingCol, `${user.uid}_${from}`);
-      const offerCandidates = collection(callDoc, 'offerCandidates');
-      const answerCandidates = collection(callDoc, 'answerCandidates');
-
-      pc.onicecandidate = event => {
-        event.candidate && addDoc(offerCandidates, event.candidate.toJSON());
-      };
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      await setDoc(callDoc, { offer });
-
-      const answerUnsub = onSnapshot(callDoc, (snapshot) => {
-        const data = snapshot.data();
-        if (!pc.currentRemoteDescription && data?.answer) {
-          const answerDescription = new RTCSessionDescription(data.answer);
-          pc.setRemoteDescription(answerDescription);
+      const newParticipantUids = newParticipants.map(p => p.uid);
+      
+      // --- Handle New Participants ---
+      newParticipants.forEach(p => {
+        if (p.uid !== user.uid && !pcs.current[p.uid]) {
+          console.log(`New participant ${p.displayName} joined. Setting up peer connection.`);
+          setupPeerConnection(p.uid);
         }
       });
-
-      const answerCandidatesUnsub = onSnapshot(answerCandidates, (snapshot) => {
-        snapshot.docChanges().forEach(change => {
-          if (change.type === 'added') {
-            pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+      
+      // --- Handle Leaving Participants ---
+      currentParticipantUids.forEach(uid => {
+          if(!newParticipantUids.includes(uid)){
+              pcs.current[uid]?.close();
+              delete pcs.current[uid];
+              setRemoteStreams(prev => {
+                  const newStreams = {...prev};
+                  delete newStreams[uid];
+                  return newStreams;
+              })
           }
-        });
       });
+    });
 
-      signalingSubs.current.push(answerUnsub, answerCandidatesUnsub);
-    };
+    // --- Signaling (WebRTC offers/answers) ---
+    const signalingCol = collection(firestore, 'meetings', meetingId, 'webrtc');
+    const signalingUnsub = onSnapshot(signalingCol, (snapshot) => {
+      snapshot.docChanges().forEach(async change => {
+        if (change.type === 'added') {
+          const { offer, answer, from, to } = change.doc.data();
+          if (to === user.uid) {
+            if (offer) {
+              const peerId = from;
+              if (!pcs.current[peerId]) setupPeerConnection(peerId);
+              const pc = pcs.current[peerId];
+              
+              await pc.setRemoteDescription(new RTCSessionDescription(offer));
+              
+              const pcAnswer = await pc.createAnswer();
+              await pc.setLocalDescription(pcAnswer);
 
-    const offersQuery = query(collection(firestore, `meetings/${meetingId}/webrtc`), where('offer.sdp', '!=', null));
-    const offersUnsub = onSnapshot(offersQuery, (snapshot) => {
-        snapshot.docChanges().forEach(async (change) => {
-            if (change.type === 'added') {
-                const docId = change.doc.id;
-                const [callerId, calleeId] = docId.split('_');
-
-                if (calleeId === user.uid) {
-                    const from = callerId;
-                    const pc = new RTCPeerConnection(configuration);
-                    pcs.current[from] = pc;
-                    
-                    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-                    
-                    pc.ontrack = event => {
-                        setRemoteStreams(prev => ({ ...prev, [from]: event.streams[0] }));
-                    };
-                    
-                    const callDoc = doc(collection(firestore, `meetings/${meetingId}/webrtc`), docId);
-                    const offerCandidates = collection(callDoc, 'offerCandidates');
-                    const answerCandidates = collection(callDoc, 'answerCandidates');
-                    
-                    pc.onicecandidate = event => {
-                        event.candidate && addDoc(answerCandidates, event.candidate.toJSON());
-                    };
-
-                    await pc.setRemoteDescription(new RTCSessionDescription(change.doc.data().offer));
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-                    await setDoc(callDoc, { answer }, { merge: true });
-
-                    const offerCandidatesUnsub = onSnapshot(offerCandidates, (snapshot) => {
-                        snapshot.docChanges().forEach((change) => {
-                            if (change.type === 'added') {
-                                pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                            }
-                        });
-                    });
-                    signalingSubs.current.push(offerCandidatesUnsub);
+              await addDoc(signalingCol, { answer: pc.localDescription.toJSON(), from: user.uid, to: peerId });
+              
+              pc.onicecandidate = event => {
+                if (event.candidate) {
+                  addDoc(signalingCol, { candidate: event.candidate.toJSON(), from: user.uid, to: peerId });
                 }
+              };
+            }
+            if (answer) {
+              const pc = pcs.current[from];
+              if (pc && !pc.currentRemoteDescription) {
+                await pc.setRemoteDescription(new RTCSessionDescription(answer));
+              }
+            }
+            if (change.doc.data().candidate) {
+                const pc = pcs.current[from];
+                if (pc?.remoteDescription) {
+                    await pc.addIceCandidate(new RTCIceCandidate(change.doc.data().candidate));
+                }
+            }
+          }
+        }
+      });
+    });
+    
+    // --- Create offers for existing participants ---
+    getDocs(participantsCol).then(snapshot => {
+        snapshot.forEach(async doc => {
+            const participant = doc.data() as Participant;
+            if (participant.uid !== user.uid) {
+                if(!pcs.current[participant.uid]) setupPeerConnection(participant.uid);
+                const pc = pcs.current[participant.uid];
+
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                await addDoc(signalingCol, { offer: pc.localDescription.toJSON(), from: user.uid, to: participant.uid });
+                
+                pc.onicecandidate = event => {
+                    if (event.candidate) {
+                        addDoc(signalingCol, { candidate: event.candidate.toJSON(), from: user.uid, to: participant.uid });
+                    }
+                };
             }
         });
     });
-    signalingSubs.current.push(offersUnsub);
-    
-    // Slight delay to ensure this user is in the participants list before creating offers
-    setTimeout(() => {
-        participants.forEach(p => {
-            if (p.uid !== user.uid && user.uid > p.uid) { // Simple logic to avoid offer glare
-                handleSignaling(p.uid);
+
+    const messagesUnsub = onSnapshot(query(collection(firestore, 'meetings', meetingId, 'messages'), orderBy('timestamp', 'asc')), (snapshot) => {
+      setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage)));
+    });
+
+    signalingSubs.current.push(participantsUnsub, signalingUnsub, messagesUnsub);
+
+  }, [localStream, firestore, meetingId, user, setupPeerConnection, initialMicOn, initialVideoOn]);
+  
+
+  const toggleMic = useCallback(async () => {
+    const newState = !isMicOn;
+    setMicOn(newState);
+    if (localStream) {
+        localStream.getAudioTracks().forEach(track => track.enabled = newState);
+    }
+    if (firestore) {
+        await updateDoc(doc(firestore, 'meetings', meetingId, 'participants', user.uid), { isMicOn: newState });
+    }
+  }, [isMicOn, localStream, firestore, meetingId, user.uid]);
+
+  const toggleVideo = useCallback(async () => {
+    if (isScreenSharing) return;
+    const newState = !isVideoOn;
+    setVideoOn(newState);
+    if (localStream) {
+        localStream.getVideoTracks().forEach(track => {
+            if (track.label.includes('camera')) { // A way to distinguish camera from screen
+                track.enabled = newState;
             }
         });
-    }, 1000);
-
-
-    // Handle window closing
-    window.addEventListener('beforeunload', leaveMeeting);
-    return () => {
-      window.removeEventListener('beforeunload', leaveMeeting);
-    };
-
-  }, [localStream, firestore, meetingId, user, leaveMeeting, participants]);
-
-  const toggleMic = () => {
-    if (localStream) {
-        localStream.getAudioTracks().forEach(track => track.enabled = !isMicOn);
-        setMicOn(!isMicOn);
     }
-  };
-
-  const toggleVideo = () => {
-    if (localStream && !isScreenSharing) {
-        localStream.getVideoTracks().forEach(track => track.enabled = !isVideoOn);
-        setVideoOn(!isVideoOn);
+    if (firestore) {
+        await updateDoc(doc(firestore, 'meetings', meetingId, 'participants', user.uid), { isVideoOn: newState });
     }
-  };
+  }, [isVideoOn, isScreenSharing, localStream, firestore, meetingId, user.uid]);
+
+  const toggleScreenShare = useCallback(async () => {
+    if (!localStream || !cameraVideoTrackRef.current) return;
+    
+    const userDocRef = doc(firestore, 'meetings', meetingId, 'participants', user.uid);
+    const screenSharingState = !isScreenSharing;
+
+    try {
+        if (screenSharingState) { // Start sharing
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            const screenTrack = screenStream.getVideoTracks()[0];
+            
+            // Listen for when user stops sharing via browser UI
+            screenTrack.onended = () => {
+                toggleScreenShare(); // This will trigger the 'else' block
+            };
+
+            // Replace track for all peer connections
+            for (const pc of Object.values(pcs.current)) {
+                const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+                sender?.replaceTrack(screenTrack);
+            }
+
+            localStream.removeTrack(cameraVideoTrackRef.current);
+            localStream.addTrack(screenTrack);
+            setIsScreenSharing(true);
+            await updateDoc(userDocRef, { isScreenSharing: true, isVideoOn: true });
+
+        } else { // Stop sharing
+            localStream.getVideoTracks().forEach(track => track.stop()); // Stop screen track
+            localStream.removeTrack(localStream.getVideoTracks()[0]);
+            localStream.addTrack(cameraVideoTrackRef.current);
+            
+             // Replace track for all peer connections
+            for (const pc of Object.values(pcs.current)) {
+                const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+                sender?.replaceTrack(cameraVideoTrackRef.current);
+            }
+            
+            setIsScreenSharing(false);
+            setVideoOn(true); // Ensure camera is on after stopping share
+            cameraVideoTrackRef.current.enabled = true;
+            await updateDoc(userDocRef, { isScreenSharing: false, isVideoOn: true });
+        }
+    } catch (error) {
+        console.error("Error toggling screen share:", error);
+        // Revert state if something fails
+        await updateDoc(userDocRef, { isScreenSharing: false });
+    }
+  }, [isScreenSharing, localStream, firestore, meetingId, user.uid]);
   
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || !firestore || !user) return;
-
-    const messagesCol = collection(firestore, 'meetings', meetingId, 'messages');
     try {
-        await addDoc(messagesCol, {
+        await addDoc(collection(firestore, 'meetings', meetingId, 'messages'), {
           uid: user.uid,
           displayName: user.displayName,
           text: text.trim(),
@@ -272,66 +368,21 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
     }
   }, [firestore, meetingId, user]);
 
-  const toggleScreenShare = useCallback(async () => {
-    if (!localStream) return;
+  const value = { 
+    participants, 
+    localStream, 
+    remoteStreams, 
+    isMicOn, 
+    isVideoOn, 
+    isScreenSharing, 
+    messages, 
+    toggleMic, 
+    toggleVideo, 
+    toggleScreenShare, 
+    leaveMeeting, 
+    sendMessage 
+  };
 
-    const currentVideoTrack = localStream.getVideoTracks()[0];
-
-    if (isScreenSharing) {
-      // Stop sharing and switch back to camera
-      if (cameraVideoTrackRef.current) {
-        currentVideoTrack.stop(); // Stop screen track
-        localStream.removeTrack(currentVideoTrack);
-        localStream.addTrack(cameraVideoTrackRef.current);
-
-        for (const pc of Object.values(pcs.current)) {
-          const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-          await sender?.replaceTrack(cameraVideoTrackRef.current);
-        }
-        setIsScreenSharing(false);
-        setVideoOn(true); // Re-enable video button
-      }
-    } else {
-      // Start sharing screen
-      try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-        const screenTrack = screenStream.getVideoTracks()[0];
-
-        // Replace track for all peer connections
-        for (const pc of Object.values(pcs.current)) {
-          const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-          await sender?.replaceTrack(screenTrack);
-        }
-
-        // Replace track in local stream for local view
-        localStream.removeTrack(currentVideoTrack);
-        localStream.addTrack(screenTrack);
-        setIsScreenSharing(true);
-        setVideoOn(true); // Keep video icon on
-
-        // Add listener to switch back when user clicks "Stop sharing" in browser UI
-        screenTrack.onended = () => {
-          if (cameraVideoTrackRef.current) {
-            const currentScreenTrack = localStream.getVideoTracks()[0];
-            currentScreenTrack.stop();
-            localStream.removeTrack(currentScreenTrack);
-            localStream.addTrack(cameraVideoTrackRef.current);
-
-            for (const pc of Object.values(pcs.current)) {
-              const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-              sender?.replaceTrack(cameraVideoTrackRef.current!);
-            }
-            setIsScreenSharing(false);
-          }
-        };
-      } catch (error) {
-        console.error("Error starting screen share:", error);
-      }
-    }
-  }, [localStream, isScreenSharing]);
-
-
-  const value = { participants, localStream, remoteStreams, isMicOn, isVideoOn, isScreenSharing, messages, toggleMic, toggleVideo, toggleScreenShare, leaveMeeting, sendMessage };
   return <MeetingContext.Provider value={value}>{children}</MeetingContext.Provider>;
 };
 
