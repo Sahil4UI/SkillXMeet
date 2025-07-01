@@ -1,6 +1,8 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
+import { AuthProvider } from '@/context/auth-context';
+import { FirebaseConfigWarning } from '@/components/firebase-config-warning';
 
 export const metadata: Metadata = {
   title: 'TrainerMeet',
@@ -20,8 +22,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+        <AuthProvider>
+          <FirebaseConfigWarning />
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

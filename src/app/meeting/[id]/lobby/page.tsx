@@ -1,9 +1,42 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LobbyPage({ params }: { params: { id: string } }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router, params.id]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background p-4">
+        <Card className="w-full max-w-2xl">
+          <CardHeader className="text-center">
+            <Skeleton className="h-8 w-48 mx-auto" />
+            <Skeleton className="h-5 w-72 mx-auto mt-2" />
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-6">
+            <Skeleton className="w-full aspect-video" />
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-12 w-36" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-2xl shadow-2xl">
