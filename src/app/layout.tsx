@@ -27,13 +27,13 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
           <AuthProvider>
             <ParticlesContainer />
-            <div className="relative z-10 min-h-screen flex flex-col">
+            <div className="relative z-10">
               <FirebaseConfigWarning />
               {children}
               <Toaster />

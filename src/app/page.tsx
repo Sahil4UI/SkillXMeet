@@ -1,140 +1,54 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { Header } from '@/components/header';
-import { ScheduleDialog } from '@/components/dashboard/schedule-dialog';
-import { UpcomingMeetings } from '@/components/dashboard/upcoming-meetings';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { CalendarClock, CalendarPlus, Lightbulb, Sparkles, Users, Video } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AiToolSuggesterDialog } from '@/components/meeting/ai-tool-suggester-dialog';
 
-
-export default function DashboardPage() {
+export default function LandingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
+    // If user is already logged in, redirect them to a dashboard page.
+    // Let's create a new dashboard page soon. For now, let's keep them here.
+    // if (!loading && user) {
+    //   router.push('/dashboard');
+    // }
   }, [user, loading, router]);
 
-  if (loading || !user) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-1 p-4 md:p-8">
-          <div className="mb-8">
-            <Skeleton className="h-10 w-72 mb-2" />
-            <Skeleton className="h-5 w-96" />
-          </div>
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-8">
-              <Skeleton className="h-48 w-full" />
-              <div>
-                <Skeleton className="h-8 w-64 mb-4" />
-                <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-                  <Skeleton className="h-56 w-full" />
-                  <Skeleton className="h-56 w-full" />
-                  <Skeleton className="h-56 w-full" />
-                </div>
-              </div>
-            </div>
-            <div className="lg:col-span-1 space-y-8">
-              <Skeleton className="h-56 w-full" />
-              <Skeleton className="h-48 w-full" />
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-1 p-4 md:p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold font-headline text-gradient animate-gradient">Welcome back, {user?.displayName?.split(' ')[0] || 'Sahil'}!</h1>
-          <p className="text-muted-foreground font-code">Here's your dashboard to manage your training sessions.</p>
+      <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20">
+        <h1 className="text-2xl font-bold text-gradient animate-gradient">TrainerMeet</h1>
+        <div>
+          {loading ? null : user ? (
+             <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
+          ) : (
+            <Button onClick={() => router.push('/login')}>Login / Sign Up</Button>
+          )}
+        </div>
+      </header>
+      <main className="relative h-screen w-full overflow-hidden flex flex-col justify-center items-center text-center px-4">
+        {/* The ParticlesContainer in layout.tsx will handle the background */}
+        <div className="relative z-10 flex flex-col items-center">
+            <h1 className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-500 bg-clip-text text-transparent animate-gradient text-center">
+                Welcome to TrainerMeet
+            </h1>
+
+            <p className="mt-6 text-lg md:text-xl text-foreground/80 max-w-2xl">
+                Experience the next generation of online training with real-time video, AI-powered tools, and seamless collaboration.
+            </p>
+
+            <Button size="lg" className="mt-8" onClick={() => router.push(user ? '/dashboard' : '/login')}>
+                Get Started
+            </Button>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-8">
-            <Card className="transition-all hover:shadow-lg hover:shadow-primary/40">
-              <CardHeader>
-                <CardTitle>Start a Session</CardTitle>
-                <CardDescription>Launch a new training session instantly or schedule one for later.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col sm:flex-row gap-4">
-                 <Button size="lg" onClick={() => router.push(`/meeting/${Math.random().toString(36).substring(2, 9)}/lobby`)}>
-                    <Video className="mr-2" /> New Instant Meeting
-                 </Button>
-                 <ScheduleDialog>
-                    <Button size="lg" variant="outline">
-                        <CalendarPlus className="mr-2" /> Schedule for Later
-                    </Button>
-                 </ScheduleDialog>
-              </CardContent>
-            </Card>
-
-            <UpcomingMeetings />
-          </div>
-
-          <div className="lg:col-span-1 space-y-8">
-            <Card className="transition-all hover:shadow-lg hover:shadow-primary/30">
-              <CardHeader>
-                <CardTitle>At a Glance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-muted rounded-md">
-                      <CalendarClock className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Next Meeting</p>
-                      <p className="text-sm text-muted-foreground">Advanced React Hooks</p>
-                    </div>
-                  </div>
-                  <p className="font-bold text-sm">Today, 14:00</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-muted rounded-md">
-                      <Users className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Meetings This Week</p>
-                      <p className="text-sm text-muted-foreground">Total scheduled</p>
-                    </div>
-                  </div>
-                  <p className="font-bold text-2xl">3</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-accent/20 border-accent/50 shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="text-accent" /> AI Assistant
-                </CardTitle>
-                <CardDescription>Need help planning your session? Get tool suggestions from our AI.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AiToolSuggesterDialog>
-                  <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Lightbulb className="mr-2" /> Get Suggestions
-                  </Button>
-                </AiToolSuggesterDialog>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <footer className="absolute bottom-4 z-10 text-foreground/60 text-sm">
+            Developed by Sahil 🚀
+        </footer>
       </main>
     </div>
   );
