@@ -17,8 +17,10 @@ interface MeetingContextType {
   remoteStreams: Record<string, MediaStream>;
   isMicOn: boolean;
   isVideoOn: boolean;
+  isScreenSharing: boolean;
   toggleMic: () => void;
   toggleVideo: () => void;
+  toggleScreenShare: () => void;
   leaveMeeting: () => void;
 }
 
@@ -28,8 +30,10 @@ const MeetingContext = createContext<MeetingContextType>({
   remoteStreams: {},
   isMicOn: true,
   isVideoOn: true,
+  isScreenSharing: false,
   toggleMic: () => {},
   toggleVideo: () => {},
+  toggleScreenShare: () => {},
   leaveMeeting: () => {},
 });
 
@@ -45,13 +49,17 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
   const [isMicOn, setMicOn] = useState(initialMicOn);
   const [isVideoOn, setVideoOn] = useState(initialVideoOn);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   
   const pcs = useRef<Record<string, RTCPeerConnection>>({});
   const signalingSubs = useRef<Array<() => void>>([]);
+  const cameraVideoTrackRef = useRef<MediaStreamTrack | null>(null);
+
 
   const leaveMeeting = useCallback(() => {
     // Stop local media tracks
     localStream?.getTracks().forEach(track => track.stop());
+    cameraVideoTrackRef.current?.stop();
 
     // Close all peer connections
     Object.values(pcs.current).forEach(pc => pc.close());
@@ -74,6 +82,7 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
       .then(stream => {
         stream.getAudioTracks()[0].enabled = initialMicOn;
         stream.getVideoTracks()[0].enabled = initialVideoOn;
+        cameraVideoTrackRef.current = stream.getVideoTracks()[0];
         setLocalStream(stream);
       })
       .catch(error => console.error("Error accessing media devices.", error));
@@ -216,13 +225,72 @@ export const MeetingProvider = ({ children, meetingId, user, initialMicOn, initi
   };
 
   const toggleVideo = () => {
-    if (localStream) {
+    if (localStream && !isScreenSharing) {
         localStream.getVideoTracks().forEach(track => track.enabled = !isVideoOn);
         setVideoOn(!isVideoOn);
     }
   };
 
-  const value = { participants, localStream, remoteStreams, isMicOn, isVideoOn, toggleMic, toggleVideo, leaveMeeting };
+  const toggleScreenShare = useCallback(async () => {
+    if (!localStream) return;
+
+    const currentVideoTrack = localStream.getVideoTracks()[0];
+
+    if (isScreenSharing) {
+      // Stop sharing and switch back to camera
+      if (cameraVideoTrackRef.current) {
+        currentVideoTrack.stop(); // Stop screen track
+        localStream.removeTrack(currentVideoTrack);
+        localStream.addTrack(cameraVideoTrackRef.current);
+
+        for (const pc of Object.values(pcs.current)) {
+          const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+          await sender?.replaceTrack(cameraVideoTrackRef.current);
+        }
+        setIsScreenSharing(false);
+        setVideoOn(true); // Re-enable video button
+      }
+    } else {
+      // Start sharing screen
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        const screenTrack = screenStream.getVideoTracks()[0];
+
+        // Replace track for all peer connections
+        for (const pc of Object.values(pcs.current)) {
+          const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+          await sender?.replaceTrack(screenTrack);
+        }
+
+        // Replace track in local stream for local view
+        localStream.removeTrack(currentVideoTrack);
+        localStream.addTrack(screenTrack);
+        setIsScreenSharing(true);
+        setVideoOn(true); // Keep video icon on
+
+        // Add listener to switch back when user clicks "Stop sharing" in browser UI
+        screenTrack.onended = () => {
+          if (cameraVideoTrackRef.current) {
+            const currentScreenTrack = localStream.getVideoTracks()[0];
+            currentScreenTrack.stop();
+            localStream.removeTrack(currentScreenTrack);
+            localStream.addTrack(cameraVideoTrackRef.current);
+
+            for (const pc of Object.values(pcs.current)) {
+              const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+              sender?.replaceTrack(cameraVideoTrackRef.current!);
+            }
+            setIsScreenSharing(false);
+          }
+        };
+      } catch (error) {
+        console.error("Error starting screen share:", error);
+      }
+    }
+  }, [localStream, isScreenSharing]);
+
+
+  const value = { participants, localStream, remoteStreams, isMicOn, isVideoOn, isScreenSharing, toggleMic, toggleVideo, toggleScreenShare, leaveMeeting };
   return <MeetingContext.Provider value={value}>{children}</MeetingContext.Provider>;
 };
 

@@ -2,14 +2,14 @@
 import { useMeeting } from '@/context/meeting-context';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Mic, MicOff, Video, VideoOff, ScreenShare, MessageSquare, Users, Phone, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, ScreenShare, ScreenShareOff, MessageSquare, Users, Phone, Sparkles } from 'lucide-react';
 import { ChatPanel } from './chat-panel';
 import { ParticipantPanel } from './participant-panel';
 import { AiToolSuggesterDialog } from './ai-tool-suggester-dialog';
 import { useRouter } from 'next/navigation';
 
 export function ControlBar() {
-  const { isMicOn, isVideoOn, toggleMic, toggleVideo, leaveMeeting } = useMeeting();
+  const { isMicOn, isVideoOn, toggleMic, toggleVideo, leaveMeeting, isScreenSharing, toggleScreenShare } = useMeeting();
   const router = useRouter();
 
   const handleLeave = () => {
@@ -51,11 +51,16 @@ export function ControlBar() {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="lg" className="rounded-full w-16 h-16">
-              <ScreenShare className="w-7 h-7" />
+            <Button 
+              variant={isScreenSharing ? 'secondary' : 'outline'}
+              size="lg" 
+              className="rounded-full w-16 h-16"
+              onClick={toggleScreenShare}
+            >
+              {isScreenSharing ? <ScreenShareOff className="w-7 h-7 text-primary" /> : <ScreenShare className="w-7 h-7" />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent><p>Share Screen</p></TooltipContent>
+          <TooltipContent><p>{isScreenSharing ? 'Stop sharing' : 'Share Screen'}</p></TooltipContent>
         </Tooltip>
 
         <ParticipantPanel>
