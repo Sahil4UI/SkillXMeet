@@ -41,23 +41,23 @@ export function ParticlesContainer() {
         },
         modes: {
           push: {
-            quantity: 2,
+            quantity: 4,
           },
           repulse: {
-            distance: 150,
+            distance: 200,
             duration: 0.4,
           },
         },
       },
       particles: {
         color: {
-          value: "#ffffff",
+          value: "hsl(var(--primary-foreground))",
         },
         links: {
-          color: "#ffffff",
+          color: "hsl(var(--primary-foreground))",
           distance: 150,
           enable: true,
-          opacity: 0.2,
+          opacity: 0.3,
           width: 1,
         },
         move: {
@@ -67,17 +67,17 @@ export function ParticlesContainer() {
             default: "bounce",
           },
           random: false,
-          speed: 1,
+          speed: 2,
           straight: false,
         },
         number: {
           density: {
             enable: true,
           },
-          value: 80,
+          value: 100,
         },
         opacity: {
-          value: 0.2,
+          value: 0.3,
         },
         shape: {
           type: "circle",

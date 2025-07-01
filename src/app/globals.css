@@ -14,10 +14,6 @@
   }
 }
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --background: 216 100% 95%;
@@ -82,8 +78,8 @@ body {
     @apply bg-background text-foreground;
   }
   .dark body {
-    background: linear-gradient(-45deg, hsl(240, 30%, 5%), hsl(260, 30%, 15%), hsl(220, 40%, 10%), hsl(240, 30%, 5%));
+    background: linear-gradient(-45deg, hsl(240, 30%, 5%), hsl(262, 40%, 15%), hsl(173, 50%, 20%), hsl(220, 40%, 10%));
     background-size: 400% 400%;
-    animation: gradient 20s ease infinite;
+    animation: gradient 15s ease infinite;
   }
 }
