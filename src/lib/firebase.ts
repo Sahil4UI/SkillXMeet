@@ -13,6 +13,7 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
+let firebaseInitializationError: Error | null = null;
 
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
@@ -21,9 +22,10 @@ if (isFirebaseConfigured) {
         app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
         auth = getAuth(app);
         googleProvider = new GoogleAuthProvider();
-    } catch (e) {
+    } catch (e: any) {
         console.error("Firebase initialization error:", e);
+        firebaseInitializationError = e;
     }
 }
 
-export { app, auth, googleProvider };
+export { app, auth, googleProvider, firebaseInitializationError };
