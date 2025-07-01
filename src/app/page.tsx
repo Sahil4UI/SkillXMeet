@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   const handleGetStarted = () => {
-    router.push(user ? "/dashboard" : "/login");
+    // Wait until loading is false to prevent race conditions
+    if (!loading) {
+      router.push(user ? "/dashboard" : "/login");
+    }
   };
 
   return (
@@ -24,7 +27,7 @@ export default function Home() {
           Your next-gen video meeting platform with vibrant, interactive visuals 🚀
         </p>
 
-        <Button size="lg" className="mt-8" onClick={handleGetStarted}>
+        <Button size="lg" className="mt-8" onClick={handleGetStarted} disabled={loading}>
             Get Started
         </Button>
       </div>
