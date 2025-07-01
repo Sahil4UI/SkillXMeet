@@ -36,11 +36,10 @@ export function Header() {
         <h1 className="text-2xl font-bold font-headline text-gradient">TrainerMeet</h1>
       </Link>
       <div className="flex items-center gap-4">
+        <ThemeSwitcher />
         {loading ? (
           <Skeleton className="h-10 w-10 rounded-full" />
         ) : user ? (
-          <>
-            <ThemeSwitcher />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="cursor-pointer">
@@ -57,7 +56,6 @@ export function Header() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </>
         ) : (
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost">
@@ -67,3 +65,8 @@ export function Header() {
               <Link href="/signup">Sign Up</Link>
             </Button>
           </div>
+        )}
+      </div>
+    </header>
+  );
+}

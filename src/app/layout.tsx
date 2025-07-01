@@ -5,6 +5,12 @@ import { AuthProvider } from '@/context/auth-context';
 import { FirebaseConfigWarning } from '@/components/firebase-config-warning';
 import { ParticlesContainer } from '@/components/particles-container';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'TrainerMeet',
@@ -18,12 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
+      <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -38,4 +39,8 @@ export default function RootLayout({
               <Toaster />
             </div>
           </AuthProvider>
-        </
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
