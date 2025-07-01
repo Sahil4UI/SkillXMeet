@@ -38,7 +38,7 @@ export function UpcomingMeetings() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4 font-headline">Upcoming Meetings</h2>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         {meetings.map((meeting) => (
           <Card key={meeting.id}>
             <CardHeader>
