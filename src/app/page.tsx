@@ -29,8 +29,8 @@ export default function Home() {
         </Button>
       </div>
 
-      <footer className="absolute bottom-4 text-foreground/60 text-sm z-10">
-        Developed by Sahil 🚀
+      <footer className="absolute bottom-4 z-10 rounded-full bg-background/50 px-4 py-2 text-sm text-foreground/80 backdrop-blur-sm">
+        Developed by Sahil 🐼
       </footer>
     </main>
   );
