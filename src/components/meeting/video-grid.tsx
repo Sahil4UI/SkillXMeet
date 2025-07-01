@@ -2,17 +2,14 @@
 
 import Image from 'next/image';
 import { useEffect, useRef } from 'react';
-
-const otherParticipants = [
-  { name: 'Student 1', isMuted: true, isSpeaking: false, image: 'https://placehold.co/400x300' },
-  { name: 'Student 2', isMuted: false, isSpeaking: false, image: 'https://placehold.co/400x300' },
-  { name: 'Student 3', isMuted: false, isSpeaking: false, image: 'https://placehold.co/400x300' },
-  { name: 'Student 4', isMuted: true, isSpeaking: false, image: 'https://placehold.co/400x300' },
-];
+import { useMeeting, type Participant } from '@/context/meeting-context';
+import { useAuth } from '@/context/auth-context';
 
 export function VideoGrid() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const { participants } = useMeeting();
+  const { user } = useAuth();
 
   useEffect(() => {
     const getMedia = async () => {
@@ -33,9 +30,17 @@ export function VideoGrid() {
     }
   }, []);
 
+  const otherParticipants = participants.filter(p => p.uid !== user?.uid);
   const totalParticipants = 1 + otherParticipants.length;
+
   // Basic logic to determine layout, can be made more sophisticated
-  const layoutClasses = totalParticipants <= 4 ? "md:grid-cols-2" : "md:grid-cols-3 lg:grid-cols-4";
+  let layoutClasses = "";
+  if (totalParticipants <= 1) layoutClasses = "md:grid-cols-1";
+  else if (totalParticipants <= 2) layoutClasses = "md:grid-cols-2";
+  else if (totalParticipants <= 4) layoutClasses = "md:grid-cols-2";
+  else if (totalParticipants <= 9) layoutClasses = "md:grid-cols-3";
+  else layoutClasses = "md:grid-cols-4";
+  
 
   return (
     <div className={`grid grid-cols-1 ${layoutClasses} gap-4 p-4 h-full w-full bg-muted/20 overflow-y-auto`}>
@@ -48,10 +53,10 @@ export function VideoGrid() {
       </div>
       {/* Other participants */}
       {otherParticipants.map(p => (
-        <div key={p.name} className="relative rounded-lg overflow-hidden shadow-lg bg-black aspect-video flex items-center justify-center">
-          <Image src={p.image} fill className="object-cover" alt={`${p.name}'s video`} data-ai-hint="person video call" />
+        <div key={p.uid} className="relative rounded-lg overflow-hidden shadow-lg bg-black aspect-video flex items-center justify-center">
+          <Image src={p.photoURL || "https://placehold.co/400x300"} fill className="object-cover" alt={`${p.displayName}'s video`} data-ai-hint="person video call" />
           <div className="absolute bottom-2 left-2 bg-black/50 text-white text-sm px-2 py-1 rounded">
-            {p.name}
+            {p.displayName}
           </div>
         </div>
       ))}
