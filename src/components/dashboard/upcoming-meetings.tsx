@@ -49,7 +49,7 @@ export function UpcomingMeetings() {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  <span>{new Date(meeting.date).toLocaleDateString('en-US', { dateStyle: 'long' })}</span>
+                  <span>{new Date(meeting.date).toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'UTC' })}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />

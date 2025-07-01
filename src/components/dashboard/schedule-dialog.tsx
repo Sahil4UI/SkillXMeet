@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,8 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
 
 export function ScheduleDialog({ children }: { children: React.ReactNode }) {
+  const [date, setDate] = useState("");
+
+  useEffect(() => {
+    setDate(new Date().toISOString().split('T')[0]);
+  }, []);
+
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -33,7 +42,7 @@ export function ScheduleDialog({ children }: { children: React.ReactNode }) {
             <Label htmlFor="date" className="text-right">
               Date
             </Label>
-            <Input id="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="col-span-3" />
+            <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="time" className="text-right">
