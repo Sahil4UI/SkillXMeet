@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -36,24 +48,24 @@ body {
   }
   .dark {
     --background: 224 71% 4%;
-    --foreground: 216 100% 95%;
-    --card: 224 71% 4%;
-    --card-foreground: 216 100% 95%;
+    --foreground: 210 40% 98%;
+    --card: 224 71% 10%;
+    --card-foreground: 210 40% 98%;
     --popover: 224 71% 4%;
-    --popover-foreground: 216 100% 95%;
-    --primary: 225 100% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 15%;
-    --secondary-foreground: 216 100% 95%;
-    --muted: 220 20% 15%;
-    --muted-foreground: 225 20% 60%;
-    --accent: 260 100% 58%;
-    --accent-foreground: 0 0% 100%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 173 95% 46%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 20% 20%;
-    --input: 220 20% 20%;
-    --ring: 225 100% 58%;
+    --destructive-foreground: 0 85.7% 97.3%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 262.1 83.3% 57.8%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -68,5 +80,10 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  .dark body {
+    background: linear-gradient(-45deg, hsl(240, 30%, 5%), hsl(260, 30%, 15%), hsl(220, 40%, 10%), hsl(240, 30%, 5%));
+    background-size: 400% 400%;
+    animation: gradient 20s ease infinite;
   }
 }

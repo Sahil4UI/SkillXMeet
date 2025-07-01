@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/context/auth-context';
 import { FirebaseConfigWarning } from '@/components/firebase-config-warning';
+import { ParticlesContainer } from '@/components/particles-container';
 
 export const metadata: Metadata = {
   title: 'TrainerMeet',
@@ -15,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -23,9 +24,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <FirebaseConfigWarning />
-          {children}
-          <Toaster />
+          <ParticlesContainer />
+          <div className="relative z-10 min-h-screen flex flex-col">
+            <FirebaseConfigWarning />
+            {children}
+            <Toaster />
+          </div>
         </AuthProvider>
       </body>
     </html>
