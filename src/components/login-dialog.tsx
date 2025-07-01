@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 
@@ -54,19 +56,19 @@ export function LoginDialog({ children }: { children: React.ReactNode }) {
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-sm bg-background/80 backdrop-blur-md border-0 p-0">
-          <Card className="w-full border-0 bg-transparent shadow-none">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Login / Sign Up</CardTitle>
-              <CardDescription>Use Google to sign in to your account.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={loading}>
-                 <GoogleIcon className="mr-2 h-4 w-4" />
-                 {loading ? 'Signing in...' : 'Continue with Google'}
-              </Button>
-            </CardContent>
-          </Card>
+      <DialogContent className="sm:max-w-sm bg-background/80 backdrop-blur-md">
+        <DialogHeader>
+          <DialogTitle className="text-center text-2xl">Login / Sign Up</DialogTitle>
+          <DialogDescription className="text-center">
+            Use Google to sign in to your account.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="pt-4">
+          <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={loading}>
+             <GoogleIcon className="mr-2 h-4 w-4" />
+             {loading ? 'Signing in...' : 'Continue with Google'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
