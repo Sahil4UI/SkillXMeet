@@ -3,14 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Video } from 'lucide-react';
+
+const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.9 2.04-5.07 2.04-4.34 0-7.84-3.52-7.84-7.84s3.5-7.84 7.84-7.84c2.47 0 4.02.98 4.94 1.9l2.6-2.6C18.47 2.45 15.82 1 12.48 1 7.18 1 3 5.18 3 10.48s4.18 9.48 9.48 9.48c5.42 0 9.1-3.87 9.1-9.33 0-.64-.07-1.25-.19-1.84h-8.91z"/>
+    </svg>
+);
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,7 +25,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) {
         toast({
@@ -43,6 +49,30 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (!auth || !googleProvider) {
+      toast({
+        variant: 'destructive',
+        title: 'Firebase Not Configured',
+        description: 'Google Sign-In is not available. Please check your Firebase setup.',
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Google Login Failed',
+        description: error.message,
+      });
+      setLoading(false);
+    }
+  };
+
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
        <div className="absolute top-8 left-8 flex items-center gap-2">
@@ -55,7 +85,7 @@ export default function LoginPage() {
           <CardDescription>Enter your email below to login to your account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="grid gap-4">
+          <form onSubmit={handleEmailLogin} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -83,6 +113,20 @@ export default function LoginPage() {
               {loading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                </span>
+            </div>
+          </div>
+          <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={loading}>
+             <GoogleIcon className="mr-2 h-4 w-4" />
+             Login with Google
+          </Button>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{' '}
             <Link href="/signup" className="underline">
