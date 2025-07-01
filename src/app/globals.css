@@ -85,9 +85,7 @@
     @apply bg-background text-foreground;
   }
   .dark body {
-    background: linear-gradient(-45deg, hsl(222, 47%, 11%), hsl(222, 40%, 15%), hsl(210, 40%, 13%), hsl(222, 47%, 11%));
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
+    background: hsl(var(--background));
   }
 
   h1, h2, h3, h4, h5, h6 {

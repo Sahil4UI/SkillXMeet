@@ -3,15 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { type Container, type ISourceOptions } from "@tsparticles/engine";
-// Now loading the full engine for more options
 import { loadFull } from "tsparticles"; 
+import { useTheme } from "next-themes";
 
 export function ParticlesContainer() {
   const [init, setInit] = useState(false);
+  const { theme } = useTheme();
 
   useEffect(() => {
     initParticlesEngine(async (engine) => {
-      // Use loadFull instead of loadSlim
       await loadFull(engine);
     }).then(() => {
       setInit(true);
@@ -24,11 +24,6 @@ export function ParticlesContainer() {
 
   const options: ISourceOptions = useMemo(
     () => ({
-      background: {
-        color: {
-          value: "transparent",
-        },
-      },
       fpsLimit: 120,
       interactivity: {
         events: {
@@ -46,21 +41,23 @@ export function ParticlesContainer() {
             quantity: 4,
           },
           repulse: {
-            distance: 200,
+            distance: 150,
             duration: 0.4,
           },
         },
       },
       particles: {
         color: {
-          value: "hsl(var(--primary))",
+          value: theme === 'dark' 
+            ? ["#ff5e57", "#48dbfb", "#ffdd59", "#1dd1a1"] 
+            : "hsl(var(--primary))"
         },
         links: {
-          color: "hsl(var(--primary))",
-          distance: 150,
-          enable: true,
-          opacity: 0.5,
-          width: 1,
+            enable: theme === 'dark' ? false : true,
+            color: "hsl(var(--primary))",
+            distance: 150,
+            opacity: 0.5,
+            width: 1,
         },
         move: {
           direction: "none",
@@ -68,7 +65,7 @@ export function ParticlesContainer() {
           outModes: {
             default: "bounce",
           },
-          random: false,
+          random: theme === 'dark',
           speed: 3,
           straight: false,
         },
@@ -76,10 +73,10 @@ export function ParticlesContainer() {
           density: {
             enable: true,
           },
-          value: 80,
+          value: theme === 'dark' ? 50 : 80,
         },
         opacity: {
-          value: 0.5,
+          value: 0.7,
         },
         shape: {
           type: "circle",
@@ -90,7 +87,7 @@ export function ParticlesContainer() {
       },
       detectRetina: true,
     }),
-    [],
+    [theme],
   );
 
   if (init) {
