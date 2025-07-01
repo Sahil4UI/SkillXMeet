@@ -3,12 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Video } from 'lucide-react';
 
@@ -22,36 +20,10 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function SignupPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleEmailSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!auth) {
-      toast({
-          variant: 'destructive',
-          title: 'Firebase Not Configured',
-          description: 'Please add your Firebase project credentials to the .env file.',
-      });
-      return;
-    }
-    setLoading(true);
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      router.push('/');
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Signup Failed',
-        description: error.message,
-      });
-      setLoading(false);
-    }
-  };
-  
   const handleGoogleSignup = async () => {
     if (!auth || !googleProvider) {
       toast({
@@ -82,60 +54,15 @@ export default function SignupPage() {
         <h1 className="text-2xl font-bold text-primary font-headline">TrainerMeet</h1>
       </Link>
       <Card className="w-full max-w-sm shadow-2xl">
-        <CardHeader>
-          <CardTitle className="text-2xl">Sign Up</CardTitle>
-          <CardDescription>Enter your information to create an account.</CardDescription>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Login / Sign Up</CardTitle>
+          <CardDescription>Use Google to create your account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleEmailSignup} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Must be at least 6 characters"
-                disabled={loading}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create Account'}
-            </Button>
-          </form>
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
-                </span>
-            </div>
-          </div>
           <Button variant="outline" className="w-full" onClick={handleGoogleSignup} disabled={loading}>
              <GoogleIcon className="mr-2 h-4 w-4" />
-             Sign up with Google
+             {loading ? 'Signing in...' : 'Continue with Google'}
           </Button>
-          <div className="mt-4 text-center text-sm">
-            Already have an account?{' '}
-            <Link href="/login" className="underline">
-              Login
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>
