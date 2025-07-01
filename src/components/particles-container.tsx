@@ -4,11 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { type Container, type ISourceOptions } from "@tsparticles/engine";
 import { loadFull } from "tsparticles"; 
-import { useTheme } from "next-themes";
 
 export function ParticlesContainer() {
   const [init, setInit] = useState(false);
-  const { theme } = useTheme();
 
   useEffect(() => {
     initParticlesEngine(async (engine) => {
@@ -48,16 +46,10 @@ export function ParticlesContainer() {
       },
       particles: {
         color: {
-          value: theme === 'dark' 
-            ? ["#ff5e57", "#48dbfb", "#ffdd59", "#1dd1a1"] 
-            : "hsl(var(--primary))"
+          value: ["#ff5e57", "#48dbfb", "#ffdd59", "#1dd1a1"]
         },
         links: {
-            enable: theme === 'dark' ? false : true,
-            color: "hsl(var(--primary))",
-            distance: 150,
-            opacity: 0.5,
-            width: 1,
+            enable: false,
         },
         move: {
           direction: "none",
@@ -65,7 +57,7 @@ export function ParticlesContainer() {
           outModes: {
             default: "bounce",
           },
-          random: theme === 'dark',
+          random: true,
           speed: 3,
           straight: false,
         },
@@ -73,7 +65,7 @@ export function ParticlesContainer() {
           density: {
             enable: true,
           },
-          value: theme === 'dark' ? 50 : 80,
+          value: 150,
         },
         opacity: {
           value: 0.7,
@@ -87,7 +79,7 @@ export function ParticlesContainer() {
       },
       detectRetina: true,
     }),
-    [theme],
+    [],
   );
 
   if (init) {
